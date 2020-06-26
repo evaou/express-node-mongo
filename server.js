@@ -5,11 +5,6 @@ const MongoClient = require("mongodb").MongoClient;
 const connectionString =
   "mongodb+srv://test:test1234@cluster0-znft6.mongodb.net/test?retryWrites=true&w=majority";
 
-app.set("view engine", "ejs");
-app.use(bodyParser.urlencoded({ extended: true }));
-app.use(express.static("public"));
-app.use(bodyParser.json());
-
 app.listen(3000, function () {
   console.log("listening on 3000");
 });
@@ -22,9 +17,15 @@ MongoClient.connect(connectionString, {
     const db = client.db("star-wars-quotes");
     const quotesCollection = db.collection("quotes");
 
+    app.set("view engine", "ejs")
+
+    app.use(bodyParser.urlencoded({ extended: true }))
+    app.use(express.static("public"))
+    app.use(bodyParser.json())
+
     app.post("/quotes", (req, res) => {
-      quotesCollection
-        .insertOne(req.body)
+    quotesCollection
+          .insertOne(req.body)
         .then((result) => {
           res.redirect("/");
         })
@@ -42,7 +43,38 @@ MongoClient.connect(connectionString, {
     });
 
     app.put("/quotes", (req, res) => {
-      console.log(req.body);
+      quotesCollection.findOneAndUpdate(
+          { name: 'Yoda' }, 
+          {
+            $set: {
+              name: req.body.name,
+              quote: req.body.quote
+            }
+          },
+          {
+            upsert: true
+          }
+      )
+      .then(result => {
+        res.json('Success')
+      })
+      .catch(error => console.error(error))
     });
+
+    app.delete("/quotes", (req, res) => {
+        quotesCollection.deleteOne(
+          {
+            name: req.body.name 
+          } 
+        )
+        .then(result => {
+          if (result.deletedCount === 0) {
+            return res.json("No quote to delete")
+          }
+          res.json("Deleted Darth Vardar's quote")
+        })
+        .catch(error => console.error(error))
+    })
+
   })
   .catch((error) => console.error(error));
